@@ -1,85 +1,129 @@
+import json
+
 class DebitCard:
-
-    def __init__(self, name, number, balance=0, pin=1234, bank='PYTHON BANK'):
-        self.name = name
-        self.number = number
-        self.pin = pin
-        self.balance = balance
+    def __init__(self,bank):
         self.bank = bank
-        self.authorisation = False
 
-    def verify_pin(self, entered_pin):
-        if entered_pin != self.pin:
-            raise Exception('INCORRECT PIN')
+    def pay(self,entered_pin,amount):
+        if self.bank.withdraw(entered_pin,amount):
+           return True
         else:
-            self.authorisation = True
-
-    def pay(self, amount):
-        if not self.authorisation:
-            return ' '
-        else:
-            self.balance -= amount
-
-    def __str__(self):
-        if not self.authorisation:
-            return ' '
-        else:
-            return (
-                f'{self.bank}\nName: {self.name}\nAccount number:'
-                f' XXXX{self.number[-4:]}\nBalance: {self.balance}'
-            )
-
-    def __repr__(self):
-        return str(self)
-
-
+            return False
 class ATM:
+    def __init__(self,bank):
+        self.bank=bank
 
-    def __init__(self, card):
-        self.card = card
-        self.transactions = []
+    def withdraw(self,entered_pin,amount):
+       if self.bank.withdraw(entered_pin,amount):
+         return f'TRANSACTION SUCCESSFUL\nYOUR BALANCE IS NOW: {self.bank.check_balance(entered_pin)}'
+       else:
+           return 'INCORRECT PIN'
 
-    def verify_login(self, entered_pin):
-        self.card.verify_pin(entered_pin)
-        if self.card.authorisation:
-            return f'WELCOME {self.card.name}'
-
-    def check_balance(self):
-        if not self.card.authorisation:
-            return ' '
+    def deposit(self,entered_pin,amount):
+        if self.bank.deposit(entered_pin,amount):
+            return f'TRANSACTION SUCCESSFUL\nYOUR BALANCE IS NOW: {self.bank.check_balance(entered_pin)}'
         else:
-            return f'YOUR BALANCE IS: {self.card.balance}'
+            return 'INCORRECT PIN'
 
-    def deposit(self, amount):
-        if not self.card.authorisation:
-            return ' '
+    def check_balance(self,entered_pin):
+        if self.bank.check_balance(entered_pin):
+            return f'{self.bank.check_balance(entered_pin)}'
         else:
-            self.card.balance += amount
-            self.transactions.append(f'+{amount}')
-            return f'TRANSACTION SUCCESSFUL\nYOUR BALANCE IS: {self.card.balance}'
+            return 'INCORRECT PIN'
 
-    def withdraw(self, amount):
-        if not self.card.authorisation:
-            return ' '
-        if amount <= self.card.balance:
-            self.card.balance -= amount
-            self.transactions.append(f'-{amount}')
-            return (
-                f'TRANSACTION SUCCESSFUL!\nYOUR BALANCE {self.card.balance}'
-            )
+    def info(self,entered_pin):
+        if self.bank.info(entered_pin):
+            return f'{self.bank.info(entered_pin)}'
         else:
-            return f'TRANSACTION DECLINED.INSUFFICIENT FUNDS'
+            return 'INCORRECT PIN'
+    def transaction_history(self,entered_pin):
+        history= self.bank.transaction_history(entered_pin)
+        if history is not False:
+            return f'{self.bank.transaction_history(entered_pin)}'
+        else:
+            return 'INCORRECT PIN'
 
-    def transaction_history(self):
-        return self.transactions
+class BankDatabase:
+    def load_data(self):
+       with open("accounts.json","r") as file:
+           data=json.load(file)
+       return data
+
+    def save_data(self,info):
+        with open("accounts.json","w") as file:
+            json.dump(info,file,indent=2)
+
+class Bank:
+    def __init__(self,database,bank_name='PYTHON BANK'):
+        self.database=database
+        self.bank_name=bank_name
+
+    def withdraw(self,entered_pin,amount):
+        data=self.database.load_data()
+        for customer in data["customers"]:
+            if entered_pin == customer["pin"]:
+               if amount > customer["wallet"]:
+                 raise Exception("insufficient funds")
+               else:
+                customer["wallet"] -= amount
+                customer["transactions"].append(f'-{amount}')
+                self.database.save_data(data)
+                return True
+        return False
+
+    def deposit(self,entered_pin,amount):
+        data = self.database.load_data()
+        for customer in data["customers"]:
+            if entered_pin == customer["pin"]:
+               if amount <= 0:
+                raise Exception("insufficient amount")
+               else:
+                customer["wallet"] += amount
+                customer["transactions"].append(f'+{amount}')
+                self.database.save_data(data)
+                return True
+        return False
+    def transaction_history(self,entered_pin):
+        data = self.database.load_data()
+        for customer in data["customers"]:
+            if entered_pin == customer["pin"]:
+               return customer["transactions"]
+        return False
+
+    def check_balance(self,entered_pin):
+        data = self.database.load_data()
+        for customer in data["customers"]:
+            if entered_pin == customer["pin"]:
+              return f'YOUR BALANCE IS {customer["wallet"]}'
+        return False
+
+    def info(self,entered_pin):
+        data = self.database.load_data()
+        for customer in data["customers"]:
+            if entered_pin == customer["pin"]:
+              return f'{self.bank_name}\nName: {customer["name"]}\nAccount Number: {customer["account number"]}\nBalance: {customer["wallet"]}'
+        return False
 
 
-my_card = DebitCard('lenny', '12345678', balance=10000)
-print(my_card.verify_pin(1234))
-print(my_card.balance)
-a = ATM(my_card)
-print(a.verify_login(1234))
-print(a.check_balance())
-print(a.deposit(2000))
-print(a.withdraw(1000))
-print(a.transactions)
+def main():
+    db=BankDatabase()
+    my_bank=Bank(db)
+    atm=ATM(my_bank)
+    my_card=DebitCard(my_bank)
+    print(atm.withdraw(432,100))
+    print(atm.deposit(1234,6000))
+    print(my_card.pay(2222,1000))
+    print(atm.check_balance(4321))
+    print(atm.info(2222))
+    print(atm.deposit(4321,2000.03))
+    print(atm.transaction_history(2222))
+    print(my_card.pay(2222,100))
+    print(atm.transaction_history(4321))
+    print(my_card.pay(1234,200.50))
+    print(atm.check_balance(1234))
+    print(atm.info(1111))
+    print(atm.transaction_history(1111))
+
+if __name__ == "__main__":
+    main()
+
