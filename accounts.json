@@ -1,0 +1,44 @@
+{
+  "customers": [
+    {
+      "name": "Eleanor smith",
+      "pin": 1234,
+      "account number": "3758947586",
+      "wallet": 13599.5,
+      "transactions": [
+        "-200.5"
+      ]
+    },
+    { "name": "Stacey Freeman",
+      "pin": 1111,
+      "account number": "7530473937",
+      "wallet": 0,
+      "transactions": []
+        },
+    {
+      "name": "Mason Blue",
+      "pin": 4321,
+      "account number": "9373829475",
+      "wallet": 13900.03,
+      "transactions": [
+        "+2000",
+        "+2000.03"
+      ]
+    },
+    {
+      "name": "John Bull",
+      "pin": 2222,
+      "account number": "5683975638",
+      "wallet": 16803.0,
+      "transactions": [
+        "-1000",
+        "+5000",
+        "+5000",
+        "-100",
+        "-100",
+        "+1",
+        "+2"
+      ]
+    }
+  ]
+}
